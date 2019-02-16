@@ -90,7 +90,7 @@
 //
 #define X_STEP_PIN         54
 #define X_DIR_PIN          55
-#define X_ENABLE_PIN       38
+#define X_ENABLE_PIN        7
 #ifndef X_CS_PIN
   #define X_CS_PIN         53
 #endif
@@ -191,8 +191,8 @@
 //
 // Temperature Sensors
 //
-#define TEMP_0_PIN         13   // Analog Input
-#define TEMP_1_PIN         15   // Analog Input
+#define TEMP_0_PIN         15   // Analog Input
+#define TEMP_1_PIN         16   // Analog Input
 #define TEMP_BED_PIN       14   // Analog Input
 
 // SPI for Max6675 or Max31855 Thermocouple

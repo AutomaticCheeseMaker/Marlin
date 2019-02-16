@@ -38,6 +38,11 @@
   #include "MarlinSPI.h"
 #endif
 
+#if ENABLED(HEATER_0_USES_DS18B20) || ENABLED(HEATER_BED_USES_DS18B20)
+  #include "OneWire.h"
+  #include "DallasTemperature.h"
+#endif 
+
 #if ENABLED(BABYSTEPPING)
   #include "stepper.h"
 #endif
@@ -930,7 +935,9 @@ float Temperature::analog2temp(const int raw, const uint8_t e) {
 
   switch (e) {
     case 0:
-      #if ENABLED(HEATER_0_USES_MAX6675)
+      #if ENABLED(HEATER_0_USES_DS18B20)
+        return raw;    
+      #elif ENABLED(HEATER_0_USES_MAX6675)
         return raw * 0.25;
       #elif ENABLED(HEATER_0_USES_AD595)
         return TEMP_AD595(raw);
@@ -987,7 +994,9 @@ float Temperature::analog2temp(const int raw, const uint8_t e) {
   // Derived from RepRap FiveD extruder::getTemperature()
   // For bed temperature measurement.
   float Temperature::analog2tempBed(const int raw) {
-    #if ENABLED(HEATER_BED_USES_THERMISTOR)
+    #if ENABLED(HEATER_BED_USES_DS18B20)
+      return raw;
+    #elif ENABLED(HEATER_BED_USES_THERMISTOR)
       SCAN_THERMISTOR_TABLE(BEDTEMPTABLE, BEDTEMPTABLE_LEN);
     #elif ENABLED(HEATER_BED_USES_AD595)
       return TEMP_AD595(raw);
@@ -1025,8 +1034,14 @@ void Temperature::updateTemperaturesFromRawValues() {
   #if ENABLED(HEATER_0_USES_MAX6675)
     current_temperature_raw[0] = read_max6675();
   #endif
+  #if ENABLED(HEATER_0_USES_DS18B20)
+    current_temperature_raw[0] = read_ds18b20_0();
+  #endif
   HOTEND_LOOP() current_temperature[e] = Temperature::analog2temp(current_temperature_raw[e], e);
   #if HAS_HEATED_BED
+    #if ENABLED(HEATER_BED_USES_DS18B20)
+      current_temperature_bed_raw = read_ds18b20_bed();
+    #endif
     current_temperature_bed = Temperature::analog2tempBed(current_temperature_bed_raw);
   #endif
   #if HAS_TEMP_CHAMBER
@@ -1080,6 +1095,16 @@ void Temperature::updateTemperaturesFromRawValues() {
   #endif
   SPI<MAX6675_DO_PIN, MOSI_PIN, MAX6675_SCK_PIN> max6675_spi;
 #endif
+
+#if ENABLED(HEATER_0_USES_DS18B20)
+  OneWire oneWire0(TEMP_0_PIN); 
+  DallasTemperature ds18b20_sensors_0(&oneWire0);
+#endif // HEATER_0_USES_DS18B20
+
+#if ENABLED(HEATER_BED_USES_DS18B20)
+  OneWire oneWireBed(TEMP_BED_PIN); 
+  DallasTemperature ds18b20_sensors_bed(&oneWireBed);
+#endif // HEATER_BED_USES_DS18B20
 
 /**
  * Initialize the temperature manager
@@ -1155,6 +1180,21 @@ void Temperature::init() {
 
   #endif // HEATER_0_USES_MAX6675
 
+  #if ENABLED(HEATER_0_USES_DS18B20)
+    ds18b20_sensors_0.begin();
+    ds18b20_sensors_0.setResolution(12);
+    ds18b20_sensors_0.setWaitForConversion(false);
+    ds18b20_sensors_0.requestTemperatures();
+  #endif // HEATER_0_USES_DS18B20
+  
+  #if ENABLED(HEATER_BED_USES_DS18B20)
+    ds18b20_sensors_bed.begin();
+    ds18b20_sensors_bed.setResolution(12);
+    ds18b20_sensors_bed.setWaitForConversion(false);
+    ds18b20_sensors_bed.requestTemperatures();
+  #endif // HEATER_BED_USES_DS18B20
+
+
   HAL_adc_init();
 
   #if HAS_TEMP_ADC_0
@@ -1172,7 +1212,7 @@ void Temperature::init() {
   #if HAS_TEMP_ADC_4
     HAL_ANALOG_SELECT(TEMP_4_PIN);
   #endif
-  #if HAS_HEATED_BED
+  #if HAS_TEMP_ADC_BED
     HAL_ANALOG_SELECT(TEMP_BED_PIN);
   #endif
   #if HAS_TEMP_CHAMBER
@@ -1553,6 +1593,49 @@ void Temperature::disable_all_heaters() {
 
 #endif // PROBING_HEATERS_OFF
 
+#if ENABLED(HEATER_0_USES_DS18B20)
+  // With 12 bits precision, DS18B20 may take up to 750 ms converting a temp.
+  #define DS18B20_0_HEAT_INTERVAL 750u
+  int ds18b20_temp_0 = 2000;
+  
+  int Temperature::read_ds18b20_0() {
+
+    static millis_t next_ds18b20_ms = 0;
+
+    millis_t ms = millis();
+
+    if (PENDING(ms, next_ds18b20_ms)) return ds18b20_temp_0;
+
+    next_ds18b20_ms = ms + DS18B20_0_HEAT_INTERVAL;
+
+    ds18b20_sensors_0.requestTemperatures();
+    ds18b20_temp_0 = (int)ds18b20_sensors_0.getTempCByIndex(0);
+    
+    return ds18b20_temp_0;
+  }
+#endif 
+
+#if ENABLED(HEATER_BED_USES_DS18B20)
+  // With 12 bits precision, DS18B20 may take up to 750 ms converting a temp.
+  #define DS18B20_BED_HEAT_INTERVAL 750u
+  int ds18b20_temp_bed = 2000;
+
+  int Temperature::read_ds18b20_bed() {
+
+    static millis_t next_ds18b20_ms = 0;
+
+    millis_t ms = millis();
+
+    if (PENDING(ms, next_ds18b20_ms)) return ds18b20_temp_bed;
+
+    next_ds18b20_ms = ms + DS18B20_BED_HEAT_INTERVAL;
+
+    ds18b20_temp_bed = (int)ds18b20_sensors_bed.getTempCByIndex(0);
+    ds18b20_sensors_bed.requestTemperatures();
+    return ds18b20_temp_bed;
+  }
+#endif 
+
 #if ENABLED(HEATER_0_USES_MAX6675)
 
   #define MAX6675_HEAT_INTERVAL 250u
@@ -1633,7 +1716,7 @@ void Temperature::disable_all_heaters() {
  * Get raw temperatures
  */
 void Temperature::set_current_temp_raw() {
-  #if HAS_TEMP_ADC_0 && DISABLED(HEATER_0_USES_MAX6675)
+  #if HAS_TEMP_ADC_0 && DISABLED(HEATER_0_USES_MAX6675) && DISABLED(HEATER_0_USES_DS18B20)
     current_temperature_raw[0] = raw_temp_value[0];
   #endif
   #if HAS_TEMP_ADC_1
@@ -1653,7 +1736,7 @@ void Temperature::set_current_temp_raw() {
     #endif
   #endif
 
-  #if HAS_HEATED_BED
+  #if HAS_HEATED_BED && DISABLED(HEATER_BED_USES_DS18B20)
     current_temperature_bed_raw = raw_temp_bed_value;
   #endif
   #if HAS_TEMP_CHAMBER
@@ -2179,7 +2262,7 @@ void Temperature::isr() {
         break;
     #endif
 
-    #if HAS_HEATED_BED
+    #if HAS_TEMP_ADC_BED
       case PrepareTemp_BED:
         HAL_START_ADC(TEMP_BED_PIN);
         break;

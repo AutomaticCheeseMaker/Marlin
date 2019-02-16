@@ -34,6 +34,17 @@
 
 #include "pins_MELZI.h"
 
+
+#undef TEMP_0_PIN         // PIN:  24   Port: A7        TEMP_0_PIN   
+#undef TEMP_BED_PIN       // PIN:  25   Port: A6        TEMP_BED_PIN 
+#undef BEEPER_PIN         // PIN:  27   Port: A4        BEEPER_PIN
+#undef LCD_PINS_RS        // PIN:  28   Port: A3        LCD_PINS_RS
+
+#define TEMP_0_PIN     3 // PIN:  27   Port: A4
+#define TEMP_BED_PIN   2 // PIN:  28   Port: A3
+#define BEEPER_PIN     24
+#define LCD_PINS_RS    25
+
 // For the stock CR-10 use the REPRAP_DISCOUNT_FULL_GRAPHIC_SMART_CONTROLLER
 //   option for the display in Configuration.h
 
