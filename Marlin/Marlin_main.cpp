@@ -709,7 +709,7 @@ static bool send_ok[BUFSIZE];
 #if HAS_SERVOS
   Servo servo[NUM_SERVOS];
   #define MOVE_SERVO(I, P) servo[I].move(P)
-  #define STOP_SERVO(I, P) servo[I].detach()
+  #define STOP_SERVO(I) servo[I].detach()
   #if HAS_Z_SERVO_PROBE
     #define DEPLOY_Z_SERVO() MOVE_SERVO(Z_PROBE_SERVO_NR, z_servo_angle[0])
     #define STOW_Z_SERVO() MOVE_SERVO(Z_PROBE_SERVO_NR, z_servo_angle[1])

@@ -255,7 +255,7 @@
   #elif ENABLED(IS_RAMPS_EEF) || ENABLED(IS_RAMPS_SF) // Hotend, Hotend, Fan or Spindle, Fan
     #define FAN_PIN        RAMPS_D8_PIN
   #elif ENABLED(IS_RAMPS_EEB)                         // Hotend, Hotend, Bed
-    #define FAN_PIN         4   // IO pin. Buffer needed
+    #define FAN_PIN         13   // IO pin. Buffer needed
   #else                                               // Non-specific are "EFB" (i.e., "EFBF" or "EFBE")
     #define FAN_PIN        RAMPS_D9_PIN
   #endif
@@ -268,12 +268,12 @@
 #define LED_PIN            13
 
 #ifndef FILWIDTH_PIN
-  #define FILWIDTH_PIN      5   // Analog Input on AUX2
+  #define FILWIDTH_PIN      12   // Analog Input on AUX2
 #endif
 
 // define digital pin 4 for the filament runout sensor. Use the RAMPS 1.4 digital input 4 on the servos connector
 #ifndef FIL_RUNOUT_PIN
-  #define FIL_RUNOUT_PIN    4
+  #define FIL_RUNOUT_PIN    12
 #endif
 
 #ifndef PS_ON_PIN
